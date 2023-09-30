@@ -26,7 +26,7 @@ public class RetentionRuleTests
     }
 
     [Fact]
-    public void RetainOneMostRecentFromNoDeployment()
+    public void KeepOneWhenNoDeployment()
     {
         // Given
         const int releaseToKeep = 1;
@@ -41,7 +41,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainOneMostRecentFromOneDeployedRelease()
+    public void KeepOneWhenOneDeployedRelease()
     {
         // Given
         const int releaseToKeep = 1;
@@ -63,7 +63,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainOneMostRecentFromSameReleaseDeployedInDifferentEnvironments()
+    public void KeepOneWhenTheSameReleaseIsDeployedInDifferentEnvironments()
     {
         // Given
         const int releaseToKeep = 1;
@@ -87,7 +87,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainOneMostRecentFromTwoDeployedReleasesInASingleEnvironment()
+    public void KeepOneWhenTwoReleasesAreDeployedToTheSameEnvironment()
     {
         // Given
         const int releaseToKeep = 1;
@@ -111,7 +111,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainOneMostRecentFromTwoDeployedReleasesInDifferentEnvironments()
+    public void KeepOneWhenTwoReleasesDeployedInTwoDifferentEnvironments()
     {
         // Given
         const int releaseToKeep = 1;
@@ -137,7 +137,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainTwoMostRecentFromTwoDeployedReleasesInASingleEnvironment()
+    public void KeepTwoWhenTwoReleasesDeployedInTheSameEnvironment()
     {
         // Given
         const int releaseToKeep = 2;
@@ -162,7 +162,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public void RetainTwoDistinctMostRecentFromFourDeployedReleasesInASingleEnvironment()
+    public void KeepTwoWhenTwoReleasesWithDuplicateDeploymentsAreDeployedToTheSameEnvironment()
     {
         // Given
         const int releaseToKeep = 2;
@@ -189,7 +189,7 @@ public class RetentionRuleTests
     }
 
     [Fact]
-    public async Task RetainOneMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    public async Task LoadFromSampleTestDataKeepOneShouldMatchExpectations()
     {
         // Given
         const int releaseToKeep = 1;
@@ -199,7 +199,7 @@ public class RetentionRuleTests
         // When
         var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
-        // Then 
+        // Then (NOTE: assume release without environment reference is not retained)
         releases.Count.Should().Be(3);
         releases.Should().ContainSingle(r => r.Id == "Release-1");
         releases.Should().ContainSingle(r => r.Id == "Release-2");
@@ -207,7 +207,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public async Task RetainTwoMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    public async Task LoadFromSampleTestDataKeepTwoShouldMatchExpectations()
     {
         // Given
         const int releaseToKeep = 2;
@@ -226,7 +226,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public async Task RetainThreeMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    public async Task LoadFromSampleTestDataKeepThreeShouldMatchExpectations()
     {
         // Given
         const int releaseToKeep = 3;
@@ -246,7 +246,7 @@ public class RetentionRuleTests
     }
     
     [Fact]
-    public async Task RetainFourMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    public async Task LoadFromSampleTestDataKeepFourShouldMatchExpectations()
     {
         // Given
         const int releaseToKeep = 4;
@@ -256,7 +256,7 @@ public class RetentionRuleTests
         // When
         var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
-        // Then 
+        // Then (NOTE: assume release without project reference is not retained, Release-8)
         releases.Count.Should().Be(5);
         releases.Should().ContainSingle(r => r.Id == "Release-1");
         releases.Should().ContainSingle(r => r.Id == "Release-2");

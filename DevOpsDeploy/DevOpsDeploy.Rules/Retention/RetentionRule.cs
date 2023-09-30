@@ -65,11 +65,11 @@ public class RetentionRule
         string projectId, 
         string environmentId)
     {
-        _logger.LogInformation("Release Ids: '{ReleaseIds}' should be retained, " +
+        _logger.LogInformation("Release Ids: {ReleaseIds} should be retained, " +
                                "Reason: Most recent {ReleasesToRetainCount} release(s) out of the " +
                                "maximum {MaximumReleasesToRetainCount} release(s) to keep for " +
-                               "Project: '{ProjectId}', Environment: '{EnvironmentId}'",
-            string.Join(", ", releasesToKeep.Select(x => x.Id)),
+                               "Project: {ProjectId}, Environment: {EnvironmentId}",
+            string.Join(", ", releasesToKeep.Select(r => r.Id)),
             releasesToKeep.Count,
             numReleaseToKeep,
             projectId,
