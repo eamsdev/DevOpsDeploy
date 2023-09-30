@@ -26,9 +26,24 @@ public class RetentionRuleContext
     public List<Environment> Environments { get; }
     
     public IEnumerable<(string Project, string Environment)> ProjectVsEnvironmentCombinations 
-        => AllProjectIds.SelectMany(projId => AllEnvironmentIds.Select(envId => (Project: projId, Environment: envId)));
+        => AllProjectIds.SelectMany(projId => AllEnvironmentIds.Select(envId 
+            => (Project: projId, Environment: envId)));
 
     private IEnumerable<string> AllProjectIds => Projects.Select(p => p.Id).Distinct();
     
     private IEnumerable<string> AllEnvironmentIds => Environments.Select(p => p.Id).Distinct();
+    
+    public IEnumerable<DeploymentsReleasePair> GetDeploymentsReleasePairForProjAndEnv(
+        string projectId, 
+        string environmentId)
+    {
+        return Releases
+            .GroupJoin(
+                Deployments,
+                release => release.Id,
+                deployment => deployment.ReleaseId,
+                (release, deployments) => new DeploymentsReleasePair(deployments, release))
+            .Where(drp => drp.Release.ProjectId == projectId)
+            .Select(drp => drp with { Deployments = drp.Deployments.Where(d => d.EnvironmentId == environmentId) });
+    }
 }

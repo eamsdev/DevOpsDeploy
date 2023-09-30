@@ -11,8 +11,6 @@ public class RetentionRuleContextBuilder
     private readonly List<Project> _projects = new();
     private readonly List<Release> _releases = new();
 
-    public static RetentionRuleContextBuilder Create() => new();
-    
     public RetentionRuleContextBuilder WithDeployment(string id, string releaseId, string environmentId, DateTime? deployedAt = null)
     {
         _deployments.Add(new Deployment

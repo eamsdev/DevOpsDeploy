@@ -1,4 +1,5 @@
-﻿using DevOpsDeploy.Rules.Retention;
+﻿using DevOpsDeploy.Models;
+using DevOpsDeploy.Rules.Retention;
 using DevOpsDeploy.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Xunit;
 using Xunit;
 using Xunit.Abstractions;
+using Environment = DevOpsDeploy.Models.Environment;
 
 namespace DevOpsDeploy.Tests;
 
@@ -15,7 +17,12 @@ public class RetentionRuleTests
     
     public RetentionRuleTests(ITestOutputHelper testOutputHelper)
     {
-        _retentionRuleFactory = ctx => new RetentionRule(ctx, GetLogger(testOutputHelper));
+        var loggerFactory = new ServiceCollection()
+            .AddLogging(builder => builder.AddProvider(new XunitLoggerProvider(testOutputHelper)))
+            .BuildServiceProvider()
+            .GetRequiredService<ILoggerFactory>();
+        
+        _retentionRuleFactory = ctx => new RetentionRule(ctx, loggerFactory.CreateLogger<RetentionRule>());
     }
 
     [Fact]
@@ -157,7 +164,7 @@ public class RetentionRuleTests
     [Fact]
     public void RetainTwoDistinctMostRecentFromFourDeployedReleasesInASingleEnvironment()
     {
-        // Given - the same release was deployed thrice in the same environment
+        // Given
         const int releaseToKeep = 2;
         var context = new RetentionRuleContextBuilder()
             .WithEnvironment("Environment-1", "Staging")
@@ -181,13 +188,92 @@ public class RetentionRuleTests
         releases.Should().ContainSingle(r => r.Id == "Release-2");
     }
 
-    private static ILogger<RetentionRule> GetLogger(ITestOutputHelper testOutputHelper)
+    [Fact]
+    public async Task RetainOneMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
     {
-        var serviceProvider = new ServiceCollection()
-            .AddLogging(builder => builder.AddProvider(new XunitLoggerProvider(testOutputHelper)))
-            .BuildServiceProvider();
+        // Given
+        const int releaseToKeep = 1;
+        var context = await LoadContextFromTestData();
+        var retentionRule  = _retentionRuleFactory(context);
 
-        var factory = serviceProvider.GetRequiredService<ILoggerFactory>();
-        return factory.CreateLogger<RetentionRule>();
+        // When
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
+
+        // Then 
+        releases.Count.Should().Be(3);
+        releases.Should().ContainSingle(r => r.Id == "Release-1");
+        releases.Should().ContainSingle(r => r.Id == "Release-2");
+        releases.Should().ContainSingle(r => r.Id == "Release-6");
+    }
+    
+    [Fact]
+    public async Task RetainTwoMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    {
+        // Given
+        const int releaseToKeep = 2;
+        var context = await LoadContextFromTestData();
+        var retentionRule  = _retentionRuleFactory(context);
+
+        // When
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
+
+        // Then 
+        releases.Count.Should().Be(4);
+        releases.Should().ContainSingle(r => r.Id == "Release-1");
+        releases.Should().ContainSingle(r => r.Id == "Release-2");
+        releases.Should().ContainSingle(r => r.Id == "Release-6");
+        releases.Should().ContainSingle(r => r.Id == "Release-7");
+    }
+    
+    [Fact]
+    public async Task RetainThreeMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    {
+        // Given
+        const int releaseToKeep = 3;
+        var context = await LoadContextFromTestData();
+        var retentionRule  = _retentionRuleFactory(context);
+
+        // When
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
+
+        // Then 
+        releases.Count.Should().Be(5);
+        releases.Should().ContainSingle(r => r.Id == "Release-1");
+        releases.Should().ContainSingle(r => r.Id == "Release-2");
+        releases.Should().ContainSingle(r => r.Id == "Release-5");
+        releases.Should().ContainSingle(r => r.Id == "Release-6");
+        releases.Should().ContainSingle(r => r.Id == "Release-7");
+    }
+    
+    [Fact]
+    public async Task RetainFourMostRecentReleaseFromSampleTestDataShouldMatchExpectations()
+    {
+        // Given
+        const int releaseToKeep = 4;
+        var context = await LoadContextFromTestData();
+        var retentionRule  = _retentionRuleFactory(context);
+
+        // When
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
+
+        // Then 
+        releases.Count.Should().Be(5);
+        releases.Should().ContainSingle(r => r.Id == "Release-1");
+        releases.Should().ContainSingle(r => r.Id == "Release-2");
+        releases.Should().ContainSingle(r => r.Id == "Release-5");
+        releases.Should().ContainSingle(r => r.Id == "Release-6");
+        releases.Should().ContainSingle(r => r.Id == "Release-7");
+    }
+
+    private static async Task<RetentionRuleContext> LoadContextFromTestData()
+    {
+        var createPath = (string fileName) => Path.Combine(".", "TestData", fileName); 
+        
+        var deployments = await TestDataReader.ReadAsync<List<Deployment>>(createPath("Deployments.Json"));
+        var environments = await TestDataReader.ReadAsync<List<Environment>>(createPath("Environments.Json"));
+        var projects = await TestDataReader.ReadAsync<List<Project>>(createPath("Projects.Json"));
+        var releases = await TestDataReader.ReadAsync<List<Release>>(createPath("Releases.Json"));
+
+        return new RetentionRuleContext(projects, releases, deployments, environments);
     }
 }

@@ -1,8 +1,7 @@
-﻿namespace DevOpsDeploy.Models
+﻿namespace DevOpsDeploy.Models;
+
+public class Environment
 {
-    public class Environment
-    {
-        public required string Id { get; init; }
-        public required string Name { get; init; }
-    }
+    public required string Id { get; init; }
+    public required string Name { get; init; }
 }
