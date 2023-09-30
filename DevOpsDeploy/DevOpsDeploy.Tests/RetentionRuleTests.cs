@@ -23,9 +23,7 @@ public class RetentionRuleTests
     {
         // Given
         const int releaseToKeep = 1;
-        var context = new RetentionRuleContextBuilder()
-            .Build();
-        
+        var context = new RetentionRuleContextBuilder().Build();
         var retentionRule = _retentionRuleFactory(context);
 
         // When
@@ -58,11 +56,35 @@ public class RetentionRuleTests
     }
     
     [Fact]
+    public void RetainOneMostRecentFromSameReleaseDeployedInDifferentEnvironments()
+    {
+        // Given
+        const int releaseToKeep = 1;
+        var context = new RetentionRuleContextBuilder()
+            .WithEnvironment("Environment-1", "Staging")
+            .WithEnvironment("Environment-2", "Production")
+            .WithProject("Project-1", "Random Quotes")
+            .WithRelease("Release-1", "Project-1", "1.0.0")
+            .WithDeployment("Deployment-1", "Release-1", "Environment-1")
+            .WithDeployment("Deployment-2", "Release-1", "Environment-2")
+            .Build();
+        
+        var retentionRule = _retentionRuleFactory(context);
+
+        // When
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
+
+        // Then 
+        releases.Count.Should().Be(1);
+        releases.First().Id.Should().Be("Release-1");
+    }
+    
+    [Fact]
     public void RetainOneMostRecentFromTwoDeployedReleasesInASingleEnvironment()
     {
         // Given
         const int releaseToKeep = 1;
-        var ctx = new RetentionRuleContextBuilder()
+        var context = new RetentionRuleContextBuilder()
             .WithEnvironment("Environment-1", "Staging")
             .WithProject("Project-1", "Random Quotes")
             .WithRelease("Release-1", "Project-1", "1.0.0")
@@ -71,10 +93,10 @@ public class RetentionRuleTests
             .WithDeployment("Deployment-2", "Release-2", "Environment-1")
             .Build();
         
-        var sut = _retentionRuleFactory(ctx);
+        var retentionRule = _retentionRuleFactory(context);
 
         // When
-        var releases = sut.GetReleasesToKeep(releaseToKeep).ToList();
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
         // Then 
         releases.Count.Should().Be(1);
@@ -86,7 +108,7 @@ public class RetentionRuleTests
     {
         // Given
         const int releaseToKeep = 1;
-        var ctx = new RetentionRuleContextBuilder()
+        var context = new RetentionRuleContextBuilder()
             .WithEnvironment("Environment-1", "Staging")
             .WithEnvironment("Environment-2", "Production")
             .WithProject("Project-1", "Random Quotes")
@@ -96,10 +118,10 @@ public class RetentionRuleTests
             .WithDeployment("Deployment-2", "Release-2", "Environment-2")
             .Build();
         
-        var sut = _retentionRuleFactory(ctx);
+        var retentionRule = _retentionRuleFactory(context);
 
         // When
-        var releases = sut.GetReleasesToKeep(releaseToKeep).ToList();
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
         // Then 
         releases.Count.Should().Be(2);
@@ -112,7 +134,7 @@ public class RetentionRuleTests
     {
         // Given
         const int releaseToKeep = 2;
-        var ctx = new RetentionRuleContextBuilder()
+        var context = new RetentionRuleContextBuilder()
             .WithEnvironment("Environment-1", "Staging")
             .WithProject("Project-1", "Random Quotes")
             .WithRelease("Release-1", "Project-1", "1.0.0")
@@ -121,10 +143,10 @@ public class RetentionRuleTests
             .WithDeployment("Deployment-2", "Release-2", "Environment-1")
             .Build();
         
-        var sut = _retentionRuleFactory(ctx);
+        var retentionRule = _retentionRuleFactory(context);
 
         // When
-        var releases = sut.GetReleasesToKeep(releaseToKeep).ToList();
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
         // Then 
         releases.Count.Should().Be(2);
@@ -137,7 +159,7 @@ public class RetentionRuleTests
     {
         // Given - the same release was deployed thrice in the same environment
         const int releaseToKeep = 2;
-        var ctx = new RetentionRuleContextBuilder()
+        var context = new RetentionRuleContextBuilder()
             .WithEnvironment("Environment-1", "Staging")
             .WithProject("Project-1", "Random Quotes")
             .WithRelease("Release-1", "Project-1", "1.0.0")
@@ -148,10 +170,10 @@ public class RetentionRuleTests
             .WithDeployment("Deployment-4", "Release-2", "Environment-1")
             .Build();
         
-        var sut = _retentionRuleFactory(ctx);
+        var retentionRule  = _retentionRuleFactory(context);
 
         // When
-        var releases = sut.GetReleasesToKeep(releaseToKeep).ToList();
+        var releases = retentionRule.GetReleasesToKeep(releaseToKeep).ToList();
 
         // Then 
         releases.Count.Should().Be(2);

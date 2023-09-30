@@ -25,10 +25,8 @@ public class RetentionRuleContext
     
     public List<Environment> Environments { get; }
     
-    public IEnumerable<(string Project, string Environment)> GetProjectVsEnvironmentCombinations()
-    {
-        return AllProjectIds.SelectMany(projId => AllEnvironmentIds.Select(envId => (Project: projId, Environment: envId)));
-    }
+    public IEnumerable<(string Project, string Environment)> ProjectVsEnvironmentCombinations 
+        => AllProjectIds.SelectMany(projId => AllEnvironmentIds.Select(envId => (Project: projId, Environment: envId)));
 
     private IEnumerable<string> AllProjectIds => Projects.Select(p => p.Id).Distinct();
     

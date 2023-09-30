@@ -25,15 +25,20 @@ public class RetentionRule
             (release, deployments) => new DeploymentsReleasePair(deployments, release)
         ).ToList();
 
-        var allReleasesToKeep = new List<Release>();
-        foreach (var (projectId, environmentId) in _context.GetProjectVsEnvironmentCombinations())
+        var uniqueReleaseIdsToKeep = new List<string>();
+        foreach (var (projectId, environmentId) in _context.ProjectVsEnvironmentCombinations)
         {
-            var releases = GetReleasesToKeep(deploymentsReleasePairs, projectId, environmentId, numReleaseToKeep).ToList();
-            allReleasesToKeep.AddRange(releases);
+            var releases = GetReleasesToKeep(
+                deploymentsReleasePairs, 
+                projectId, 
+                environmentId, 
+                numReleaseToKeep).ToList();
+            
+            uniqueReleaseIdsToKeep.AddRange(releases.Select(r => r.Id));
             LogRetentionReason(releases, numReleaseToKeep, projectId, environmentId);
         }
 
-        return allReleasesToKeep;
+        return _context.Releases.Where(r => uniqueReleaseIdsToKeep.Distinct().Contains(r.Id));
     }
 
     private static IEnumerable<Release> GetReleasesToKeep(
@@ -74,7 +79,7 @@ public class RetentionRule
                                "Reason: Most recent {ReleasesToRetainCount} release(s) out of the " +
                                "maximum {MaximumReleasesToRetainCount} release(s) to keep for " +
                                "Project: '{ProjectId}', Environment: '{EnvironmentId}'",
-            string.Join(',', releasesToKeep.Select(x => x.Id)),
+            string.Join(", ", releasesToKeep.Select(x => x.Id)),
             releasesToKeep.Count,
             numReleaseToKeep,
             projectId,
