@@ -1,7 +1,8 @@
-﻿namespace DevOpsDeploy.Models;
-
-public class Project
+﻿namespace DevOpsDeploy.Models
 {
-    public required string Id { get; init; }
-    public required string Name { get; init; }
+    public class Project
+    {
+        public required string Id { get; init; }
+        public required string Name { get; init; }
+    }
 }

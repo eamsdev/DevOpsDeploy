@@ -1,16 +1,15 @@
 ﻿using DevOpsDeploy.Models;
 using Microsoft.Extensions.Logging;
-using Environment = DevOpsDeploy.Models.Environment;
 
 namespace DevOpsDeploy.Rules.Retention;
 
 public class RetentionRule
 {
-    private readonly Context _context;
+    private readonly RetentionRuleContext _context;
     private readonly ILogger<RetentionRule> _logger;
 
     public RetentionRule(
-        Context context,
+        RetentionRuleContext context,
         ILogger<RetentionRule> logger)
     {
         _context = context;
@@ -19,9 +18,6 @@ public class RetentionRule
 
     public IEnumerable<Release> GetReleasesToKeep(int numReleaseToKeep)
     {
-        var projectVsEnvironmentCombination =
-            _context.AllProjectIds.SelectMany(p => _context.AllEnvironmentIds.Select(e => (p, e)));
-        
         var deploymentsReleasePairs = _context.Releases.GroupJoin(
             _context.Deployments,
             release => release.Id,
@@ -30,9 +26,9 @@ public class RetentionRule
         ).ToList();
 
         var allReleasesToKeep = new List<Release>();
-        foreach (var (projectId, environmentId) in projectVsEnvironmentCombination)
+        foreach (var (projectId, environmentId) in _context.GetProjectVsEnvironmentCombinations())
         {
-            var releases = GetReleasesToKeep(deploymentsReleasePairs, projectId, environmentId).ToList();
+            var releases = GetReleasesToKeep(deploymentsReleasePairs, projectId, environmentId, numReleaseToKeep).ToList();
             allReleasesToKeep.AddRange(releases);
             LogRetentionReason(releases, numReleaseToKeep, projectId, environmentId);
         }
@@ -43,20 +39,22 @@ public class RetentionRule
     private static IEnumerable<Release> GetReleasesToKeep(
         IEnumerable<DeploymentsReleasePair> depRelPairs, 
         string projectId,
-        string environmentId)
+        string environmentId,
+        int numReleaseToKeep)
     {            
         var matchingDepAndRel = depRelPairs
             .Where(dar => dar.Release.ProjectId == projectId)
             .Select(dar => dar with { Deployments = dar.Deployments.Where(d => d.EnvironmentId == environmentId) })
             .Where(HasBeenDeployed);
 
-        // Assume we are keeping most recent *DISTINCT* n-releases 
         var mostRecentDepPerRel = matchingDepAndRel
             .Select(dar => new
             {
                 Deployment = dar.Deployments.OrderByDescending(d => d.DeployedAt).First(),
                 dar.Release
-            });
+            })
+            .OrderByDescending(dar => dar.Deployment.DeployedAt)
+            .Take(numReleaseToKeep);
 
         return mostRecentDepPerRel.Select(dar => dar.Release);
     }
@@ -81,28 +79,6 @@ public class RetentionRule
             numReleaseToKeep,
             projectId,
             environmentId);
-    }
-
-    public class Context
-    {
-        public Context(
-            List<Project> projects,
-            List<Release> releases,
-            List<Deployment> deployments,
-            List<Environment> environments)
-        {
-            Projects = projects;
-            Releases = releases;
-            Deployments = deployments;
-            Environments = environments;
-        }
-        
-        public List<Project> Projects { get; }
-        public List<Release> Releases { get; }
-        public List<Deployment> Deployments { get; }
-        public List<Environment> Environments { get; }
-        public IEnumerable<string> AllProjectIds => Projects.Select(p => p.Id).Distinct();
-        public IEnumerable<string> AllEnvironmentIds => Environments.Select(p => p.Id).Distinct();
     }
 
     private record DeploymentsReleasePair(IEnumerable<Deployment> Deployments, Release Release);

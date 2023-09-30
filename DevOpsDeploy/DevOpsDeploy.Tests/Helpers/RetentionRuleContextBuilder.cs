@@ -2,7 +2,7 @@
 using DevOpsDeploy.Rules.Retention;
 using Environment = DevOpsDeploy.Models.Environment;
 
-namespace DevOpsDeploy.Tests;
+namespace DevOpsDeploy.Tests.Helpers;
 
 public class RetentionRuleContextBuilder
 {
@@ -13,14 +13,14 @@ public class RetentionRuleContextBuilder
 
     public static RetentionRuleContextBuilder Create() => new();
     
-    public RetentionRuleContextBuilder WithDeployment(string id, string relId, string envId, DateTime deployedAt)
+    public RetentionRuleContextBuilder WithDeployment(string id, string releaseId, string environmentId, DateTime? deployedAt = null)
     {
         _deployments.Add(new Deployment
         {
             Id = id,
-            DeployedAt = deployedAt,
-            EnvironmentId = envId,
-            ReleaseId = relId
+            DeployedAt = deployedAt ?? DateTime.UtcNow,
+            EnvironmentId = environmentId,
+            ReleaseId = releaseId
         });
         
         return this;
@@ -48,18 +48,18 @@ public class RetentionRuleContextBuilder
         return this;
     }
     
-    public RetentionRuleContextBuilder WithRelease(string id, string projectId, string? version, DateTime created)
+    public RetentionRuleContextBuilder WithRelease(string id, string projectId, string? version, DateTime? created = null)
     {        
         _releases.Add(new Release
         {
             Id = id,
             ProjectId = projectId,
             Version = version,
-            Created = created
+            Created = created ?? DateTime.UtcNow
         });
         
         return this;
     }
 
-    public RetentionRule.Context Build() => new(_projects, _releases, _deployments, _environments);
+    public RetentionRuleContext Build() => new(_projects, _releases, _deployments, _environments);
 }
